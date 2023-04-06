@@ -1,7 +1,16 @@
-# Здесь будет ваш проект на Реакте с авторизацией и регистрацией
+# Mesto-React
+## Fifth Project Yandex Practicum
+What do we learned? &rarr;
+1. Syntax of JSX.
+2. CRA.
+3. Using react hooks.
 
-Используйте ваши предыдущие наработки по проекту Mesto. Это может быть работа 11-го спринта или его улучшенная версия после 2-х последних спринтов. 
+![Preview](https://user-images.githubusercontent.com/99011044/204518012-a83ac570-32af-43e3-8bbd-8be04c3b898b.png)
+### Technologies:
+* Html
+* Css
+* JavaScript
+* Webpack
+* React
 
-Все запросы на авторизацию, регистрацию и проверку токена должны работать через сервис `https://auth.nomoreparties.co`. Остальные запросы, не относящиеся к этой проектной работе могут быть к бэкенду из предыдущих спринтов.
-
-Успехов!
+## [Website](https://msiameg.github.io/mesto)
