@@ -1,19 +1,27 @@
-import Header from './Header.js';
 import Main from './Main.js';
-import Footer from './Footer.js';
+import Login from './Login.js';
+import Register from './Register.js';
 import PopupWithForm from './PopupWithForm.js';
 import ImagePopup from './ImagePopup.js';
 import { useState, useEffect } from 'react';
+import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import api from '../utils/Api.js';
+import authApi from '../utils/AuthApi.js';
 import { CurrentUserContext } from '../contexts/CurrentUserContext.js';
 import { CardsContext } from '../contexts/CardsContext.js';
+import { LoginContext } from '../contexts/LoginContext.js';
 import EditProfilePopup from './EditProfilePopup.js';
 import EditAvatarPopup from './EditAvatarPopup.js';
 import AddPlacePopup from './AddPlacePopup.js';
+import ProtectedRoute from './ProtectedRoute.js';
 
 function App() {
 
-  const [currentUser, setCurrentUser] = useState({ about: '', avatar: '', name: '', _id: '', cohort: '' });
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState({email: ''});
+  const navigate = useNavigate();
+
+  const [currentUser, setCurrentUser] = useState({ about: '', avatar: '', name: '', _id: '', cohort: ''});
   const [cards, setCards] = useState([]);
 
   const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] = useState(false);
@@ -28,7 +36,6 @@ function App() {
 
     Promise.all([userPromise, cardPromise])
       .then(([userPromise, cardPromise]) => {
-
         setCurrentUser({
           about: userPromise.about,
           avatar: userPromise.avatar,
@@ -126,26 +133,57 @@ function App() {
     setSelectedCard({ name: '', link: '' });
   }
 
+  const userLoggined = () => {
+    setLoggedIn(true);
+  }
+  const signOut = () => {
+    setLoggedIn(false);
+    localStorage.removeItem('jwt');
+  };
+
+  const tokenCheck = () => {
+    if (localStorage.getItem('jwt')){
+      const jwt = localStorage.getItem('jwt');
+
+      authApi.validateUserData(jwt)
+      .then(res => {
+        setLoggedIn(true);
+        navigate('/', {replace: true});
+        setUser({email: res.data.email});
+      })
+      .catch((err) => {
+        console.log(err);
+        setLoggedIn(false);
+      });
+    }
+  }
+
   return (
-    <CurrentUserContext.Provider value={currentUser}>
-      <CardsContext.Provider value={cards}>
-        <div className="container">
-          <Header />
-          <Main onCardDelete={handleCardDelete} onCardClick={handleCardClick} onCardLike={handleCardLike} onEditProfile={handleEditProfileClick} onAddPlace={handleAddPlaceClick} onEditAvatar={handleEditAvatarClick} />
-          <Footer />
+    <LoginContext.Provider value={{loggedIn, authApi, userLoggined, user, tokenCheck}}>
+      <CurrentUserContext.Provider value={currentUser}>
+        <CardsContext.Provider value={cards}>
+          <div className="container">
+            <Routes>
+              <Route path='/sign-in' element={<Login />}/>
+              <Route path='/sign-up' element={<Register />}/>
+              <Route path='/' element={<ProtectedRoute element={Main} signOut={signOut} onCardDelete={handleCardDelete} onCardClick={handleCardClick} onCardLike={handleCardLike} onEditProfile={handleEditProfileClick} onAddPlace={handleAddPlaceClick} onEditAvatar={handleEditAvatarClick} />} />
+              <Route path='*' element={loggedIn ? <Navigate to="/" replace /> : <Navigate to="/sign-in" replace />} />
+            </Routes>
 
-          <EditProfilePopup onUpdateUser={handleUpdateUser} isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} />
+            <EditProfilePopup onUpdateUser={handleUpdateUser} isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} />
 
-          <EditAvatarPopup onUpdateAvatar={handleUpdateAvatar} isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} />
+            <EditAvatarPopup onUpdateAvatar={handleUpdateAvatar} isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} />
 
-          <AddPlacePopup onAddPlace={handleAddPlaceSubmit} isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} />
+            <AddPlacePopup onAddPlace={handleAddPlaceSubmit} isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} />
 
-          <PopupWithForm name='delete-card' title='Вы уверены?' buttonText='Да' isOpen={false} />
+            <PopupWithForm name='delete-card' title='Вы уверены?' buttonText='Да' isOpen={false} />
 
-          <ImagePopup card={selectedCard} onClose={closeAllPopups} />
-        </div>
-      </CardsContext.Provider>
-    </CurrentUserContext.Provider>
+            <ImagePopup card={selectedCard} onClose={closeAllPopups} />
+
+          </div>
+        </CardsContext.Provider>
+      </CurrentUserContext.Provider>
+    </LoginContext.Provider>
   );
 }
 
