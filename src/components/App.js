@@ -14,6 +14,7 @@ import EditProfilePopup from './EditProfilePopup.js';
 import EditAvatarPopup from './EditAvatarPopup.js';
 import AddPlacePopup from './AddPlacePopup.js';
 import ProtectedRoute from './ProtectedRoute.js';
+import InfoTooltip from './InfoTooltip.js';
 
 function App() {
 
@@ -27,28 +28,32 @@ function App() {
   const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] = useState(false);
   const [isAddPlacePopupOpen, setIsAddPlacePopupOpen] = useState(false);
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = useState(false);
+  const [registrationPopup, setRegistrationPopup] = useState({isOpen: false, success: false, text: ''});
   const [selectedCard, setSelectedCard] = useState({ name: '', link: '' });
 
   useEffect(() => {
+    tokenCheck();
+    if (loggedIn) {
+      const userPromise = api.getUserData();
+      const cardPromise = api.getInitialCards();
 
-    const userPromise = api.getUserData();
-    const cardPromise = api.getInitialCards();
+      Promise.all([userPromise, cardPromise])
+        .then(([userPromise, cardPromise]) => {
+          setCurrentUser({
+            about: userPromise.about,
+            avatar: userPromise.avatar,
+            name: userPromise.name,
+            _id: userPromise._id,
+            cohort: userPromise.cohort
+          });
+          setCards(cardPromise);
+        })
+        .catch((err) => {
+          console.log(err);
+        })
+    }
+  }, [loggedIn]);
 
-    Promise.all([userPromise, cardPromise])
-      .then(([userPromise, cardPromise]) => {
-        setCurrentUser({
-          about: userPromise.about,
-          avatar: userPromise.avatar,
-          name: userPromise.name,
-          _id: userPromise._id,
-          cohort: userPromise.cohort
-        });
-        setCards(cardPromise);
-      })
-      .catch((err) => {
-        console.log(err);
-      })
-  }, []);
 
   const handleCardLike = (card) => {
     // Снова проверяем, есть ли уже лайк на этой карточке
@@ -131,6 +136,7 @@ function App() {
     setIsEditProfilePopupOpen(false);
     setIsAddPlacePopupOpen(false);
     setSelectedCard({ name: '', link: '' });
+    setRegistrationPopup({...registrationPopup, isOpen: false});
   }
 
   const userLoggined = () => {
@@ -142,9 +148,9 @@ function App() {
   };
 
   const tokenCheck = () => {
-    if (localStorage.getItem('jwt')){
-      const jwt = localStorage.getItem('jwt');
+    const jwt = localStorage.getItem('jwt');
 
+    if (jwt){
       authApi.validateUserData(jwt)
       .then(res => {
         setLoggedIn(true);
@@ -158,14 +164,44 @@ function App() {
     }
   }
 
+  const handleRegister = (input) => {
+    const {email, password} = input;
+    authApi.registration(password, email)
+    .then(res => {
+        console.log(res);
+        setRegistrationPopup({isOpen: true, success: true, text: 'Вы успешно зарегистрировались!'});
+        navigate('/login-in', {replace: true});
+    })
+    .catch(err => {
+        console.log(err);
+        setRegistrationPopup({isOpen: true, success: false, text: 'Что-то пошло не так! Попробуйте ещё раз.'});
+    });
+  };
+
+  const handleLogin = (input) => {
+    const {email, password} = input;
+    authApi.signIn(password, email)
+    .then(res => {
+        console.log(res);
+        userLoggined();
+        localStorage.setItem('jwt', res.token);
+        setRegistrationPopup({isOpen: true, success: true, text: 'Вход успешно произведен!'});
+        navigate('/', {replace: true});
+    })
+    .catch(err => {
+        console.log(err);
+        setRegistrationPopup({isOpen: true, success: false, text: 'Что-то пошло не так! Попробуйте ещё раз.'});
+    });
+  };
+
   return (
-    <LoginContext.Provider value={{loggedIn, authApi, userLoggined, user, tokenCheck}}>
+    <LoginContext.Provider value={{loggedIn, authApi, userLoggined, user}}>
       <CurrentUserContext.Provider value={currentUser}>
         <CardsContext.Provider value={cards}>
           <div className="container">
             <Routes>
-              <Route path='/sign-in' element={<Login />}/>
-              <Route path='/sign-up' element={<Register />}/>
+              <Route path='/sign-in' element={<Login onLogin={handleLogin} />}/>
+              <Route path='/sign-up' element={<Register onRegister={handleRegister} />}/>
               <Route path='/' element={<ProtectedRoute element={Main} signOut={signOut} onCardDelete={handleCardDelete} onCardClick={handleCardClick} onCardLike={handleCardLike} onEditProfile={handleEditProfileClick} onAddPlace={handleAddPlaceClick} onEditAvatar={handleEditAvatarClick} />} />
               <Route path='*' element={loggedIn ? <Navigate to="/" replace /> : <Navigate to="/sign-in" replace />} />
             </Routes>
@@ -180,6 +216,7 @@ function App() {
 
             <ImagePopup card={selectedCard} onClose={closeAllPopups} />
 
+            <InfoTooltip onClose={closeAllPopups} success={registrationPopup.success} isOpen={registrationPopup.isOpen} text={registrationPopup.text}/>
           </div>
         </CardsContext.Provider>
       </CurrentUserContext.Provider>

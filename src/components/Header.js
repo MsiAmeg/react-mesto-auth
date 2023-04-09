@@ -6,10 +6,6 @@ import { useContext, useEffect } from 'react';
 function Header({link}) {
 
     const context = useContext(LoginContext);
-
-    useEffect(() => {
-        context.tokenCheck();
-      }, []);
     
     return (
     <header className="header">
