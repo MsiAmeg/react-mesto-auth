@@ -12,6 +12,8 @@
 ![Webpack](https://img.shields.io/badge/-Webpack-99d6f8?style=for-the-badge&logo=webpack&logoColor=black)
 ![BEM](https://img.shields.io/badge/-BEM-black?style=for-the-badge&logo=bem)
 
+## Статус: Завершен
+
 ## Запуск проекта:
 1. Клонировать репозиторий.
 2. Установить зависимости.
